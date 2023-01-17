@@ -27,7 +27,6 @@
 #LogLevel INFO
 
 # Authentication:
-
 LoginGraceTime 1m
 PermitRootLogin no
 #StrictModes yes
@@ -56,7 +55,7 @@ IgnoreRhosts yes
 PasswordAuthentication no
 PermitEmptyPasswords no
 ChallengeResponseAuthentication yes
-AuthenticationMethods publickey,keyboard-interactive
+AuthenticationMethods publickey,password publickey
 
 # Change to no to disable s/key passwords
 #KbdInteractiveAuthentication yes
@@ -80,7 +79,7 @@ AuthenticationMethods publickey,keyboard-interactive
 # If you just want the PAM account and session checks to run without
 # PAM authentication, then enable this but set PasswordAuthentication
 # and KbdInteractiveAuthentication to 'no'.
-#UsePAM no
+UsePAM no
 
 #AllowAgentForwarding yes
 #AllowTcpForwarding yes
