@@ -41,8 +41,7 @@ log() {
 }
 confirm() {
   read -r -p "${1} [y/N] " response
-  if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]
-  then
+  if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
       confirmed=true
   else
       confirmed=false
