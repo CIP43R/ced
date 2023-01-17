@@ -56,7 +56,7 @@ compare() {
   fi
 }
 replace_config() {
-  sed -i "s/$1/$2" $3
+  sed -i -e "s/$1/$2/g" "$3"
 }
 
 
@@ -174,7 +174,7 @@ confirm "Enable 2FA (google authenticator?)"
 if [[ $confirmed = true ]]; then
   apt install libpam-google-authenticator -y &> $aptlogloc
   echo "Scan the following QR code with the google authenticator app and insert the code when prompted."
-  sudo -u $adminusr google-authenticator -t -d -W -f --step-size=30 --rate-limit=2 --rate-time=30
+  sudo -u $adminusr google-authenticator -t -d -f --step-size=30 --rate-limit=2 --rate-time=30
 
   # Add google authenticator to pam config if not present
   compare "auth required pam_google_authenticator.so" /etc/pam.d/sshd

@@ -31,7 +31,7 @@ LoginGraceTime 1m
 PermitRootLogin no
 #StrictModes yes
 MaxAuthTries 3
-MaxSessions 2
+MaxSessions 3
 PubkeyAuthentication yes
 
 # The default is to check both .ssh/authorized_keys and .ssh/authorized_keys2
