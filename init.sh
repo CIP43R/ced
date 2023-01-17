@@ -166,7 +166,7 @@ compare "$allowusers" /etc/ssh/sshd_config
 if [[ $compared = true ]]; then
   log "User already in allowed section. Skipping." INFO
 else
-  echo $allowusers >> /etc/ssh/sshd_config
+  echo -e "\n$allowusers" >> /etc/ssh/sshd_config
 fi
 log "Configured sshd to use RSA authentication only with provided key" INFO
 # Optionally configure 2FA
