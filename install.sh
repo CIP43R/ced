@@ -1,6 +1,7 @@
 #!/bin/bash
-sudo apt install git -y
+echo "[INFO] Starting installation process..."
+sudo apt install git -y &>
 cd /opt
-git clone https://github.com/CIP43R/setup-linux-server.git
+git clone https://github.com/CIP43R/setup-linux-server.git &>
 cd setup-linux-server
-bash ./init.sh
+sudo bash ./init.sh
