@@ -1,7 +1,7 @@
 # How to use
 Run one of the following commands (curl or wget) to install the setup script
 ```
-curl -o- https://raw.githubusercontent.com/CIP43R/setup-linux-server/master/install.sh && bash install.sh
+curl https://raw.githubusercontent.com/CIP43R/setup-linux-server/master/install.sh -o install.sh && bash install.sh
 ```
 ```
 wget -qO- https://raw.githubusercontent.com/CIP43R/setup-linux-server/master/install.sh && bash install.sh
