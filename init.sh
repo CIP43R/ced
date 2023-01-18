@@ -125,7 +125,8 @@ backup
 ###
 # Create central admin user and login as them
 ###
-adminusr=$(who am i | awk '{print $1}')
+curuser=$(who am i | awk '{print $1}')
+adminusr="${curuser:-$USER}"
 confirm "Do you want to create a new central sudo user? This is recommended if only root is available."
 if [[ $confirmed = true ]]; then
   echo "Please type in a name for the new admin user: "
