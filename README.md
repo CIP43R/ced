@@ -1,10 +1,10 @@
 # How to use
 Run one of the following commands (curl or wget) to install the setup script
 ```
-curl -o- https://raw.githubusercontent.com/CIP43R/setup-linux-server/master/install.sh | sudo bash
+curl -o- https://raw.githubusercontent.com/CIP43R/setup-linux-server/master/install.sh && bash install.sh
 ```
 ```
-wget -qO- https://raw.githubusercontent.com/CIP43R/setup-linux-server/master/install.sh | sudo bash
+wget -qO- https://raw.githubusercontent.com/CIP43R/setup-linux-server/master/install.sh && bash install.sh
 ```
 
 # What is this?
@@ -12,6 +12,8 @@ This is just a small personal thing I created. I like experimenting with servers
 Sometimes it's easier to reinstall it, and since my snapshots are getting deleted after a while, I wanted to have a quick way of bootstrapping everything I need.
 
 It's basically a small script that lets you pick some very basic but useful tools and configs for a nice and safe admin UX.
+
+This repo is mostly just for my personal educational purposes! I'm experimenting with linux and am not an expert with either bash scripting or security measures. Please keep that in mind in case you want to use this for anything.
 
 # What can it do?
 The focus lies on the security aspect.
