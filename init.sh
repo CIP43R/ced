@@ -54,7 +54,7 @@ compare() {
     compared=false
   fi
 }
-replace_config() {
+replace() {
   sed -i -e "s/$1/$2/g" "$3"
 }
 
@@ -96,12 +96,22 @@ install_nginx() {
   if [[ $confirmed = true ]]; then 
     nano /etc/nginx/sites-available/reverse-proxies.conf
     rm /etc/nginx/sites-available/default
+    rm /etc/nginx/sites-enabled/default
     ln -s /etc/nginx/sites-available/* /etc/nginx/sites-enabled
     nginx -t || {
       log "There is an issue with the nginx config. Aborting..." ERROR
     }
   fi
   log "Installed and configured nginx successfully"
+}
+install_portainer() {
+  if ! [ -x "$(command -v docker)" ]; then
+    install_docker
+  else
+    docker volume create portainer_data
+    docker run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest
+  fi
+  log "Installed portainer. Please open a browser and go to https://<yourip>:9443 to create a portainer admin user." INFO
 }
 backup() {
   # Make a netplan backup to prevent network config issues
@@ -183,14 +193,14 @@ if [[ $confirmed = true ]]; then
   else
     echo "auth required pam_google_authenticator.so" >> /etc/pam.d/sshd
   fi
-  replace_config "@include common-auth" "#@include common-auth" /etc/pam.d/sshd
-  replace_config "AuthenticationMethods publickey,password publickey" "AuthenticationMethods publickey,password publickey,keyboard-interactive" /etc/ssh/sshd_config
-  replace_config "UsePAM no" "UsePAM yes" /etc/ssh/sshd_config
+  replace "@include common-auth" "#@include common-auth" /etc/pam.d/sshd
+  replace "AuthenticationMethods publickey,password publickey" "AuthenticationMethods publickey,password publickey,keyboard-interactive" /etc/ssh/sshd_config
+  replace "UsePAM no" "UsePAM yes" /etc/ssh/sshd_config
   log "Set up google authenticator for 2FA authentication" INFO
 else
-  replace_config "AuthenticationMethods publickey,password publickey,keyboard-interactive" "AuthenticationMethods publickey,password publickey" /etc/ssh/sshd_config
-  replace_config "UsePAM yes" "UsePAM no" /etc/ssh/sshd_config
-  replace_config "#@include common-auth" "@include common-auth" /etc/pam.d/sshd
+  replace "AuthenticationMethods publickey,password publickey,keyboard-interactive" "AuthenticationMethods publickey,password publickey" /etc/ssh/sshd_config
+  replace "UsePAM yes" "UsePAM no" /etc/ssh/sshd_config
+  replace "#@include common-auth" "@include common-auth" /etc/pam.d/sshd
 fi
 systemctl restart sshd.service
 # Limit crontab to new root user
@@ -220,7 +230,7 @@ fi
 # Third party software
 ###
 printf "Type in the corresponding numbers for third party software to install (separated by comma)"
-printf "\n1) NGINX\n2) Docker\n3) Webmin\n"
+printf "\n1) NGINX\n2) Docker\n3) Webmin\n4) Portainer\n"
 read itps
 toinstall=$(echo $itps | tr "," "\n")
 for software in $toinstall
@@ -234,6 +244,9 @@ do
     ;;
     3) 
     install_webmin
+    ;;
+    4)
+    install_portainer
     ;;
   esac
 done
