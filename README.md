@@ -16,16 +16,39 @@ It's basically a small script that lets you pick some very basic but useful tool
 This repo is mostly just for my personal educational purposes! I'm experimenting with linux and am not an expert with either bash scripting or security measures. Please keep that in mind in case you want to use this for anything.
 
 # What can it do?
-The focus lies on the security aspect.
+It can make your life easier if you i.e. just want to create a small server for testing, development, gaming whatever.
+The focus lies on the security aspect and easy configuration. I provided the (in my opinion) most useful and important things to have on a server, as well as the most crucial basic configurations for these.
 
+The script interactively guides you through several steps:
 - It will prompt whether you want to create a central sudo user that replaces root. If you skip this step, everything the script does related to the users (i.e. authentication) will be applied to the user that is running the script.
-- It will install ufw, a very handy and simple firewall tool, and configure it for only ssh 
+- It will install ufw, a very handy and simple firewall tool, and configure it for ssh 
 - Then it will ask you for an RSA key, since in the next step, it will change the ssh config so that only pubkey authentication is allowed
 - Optionally, you can then enable MFA (2FA+). It will install google authenticator and prompt you to create a key.
-- As a safety measure, it will only allow the one user to use ssh, if desired this can be changed later. Same goes for crontab usage.
-- It will then install fail2ban and preconfigure it to permanently ban attackers. Standard jails for nginx and ssh will be enabled
+- As a safety measure, it will only allow the one user (either the created or the current) to use ssh, if desired this can be changed later. Same goes for crontab usage.
+- It will then install fail2ban and preconfigure it to permanently ban attackers. Standard jails for nginx and ssh will be enabled, others will be enabled automatically if the apps are desired to be installed (i.e. vsftpd)
 - Optionally, you can install SELinux. Please read how it works, before installing it
-- After that, you can pick to install one or more third party applications: nginx, docker and webmin
+- After that, you can pick to install one or more third party applications: nginx, docker, webmin, etc. (full list below)
+
+# Expand / Edit
+You can just clone this repo to your server and adjust all the configs you'd like to.
+The original configs will be saved in /backup 
+
+# Full list of mandatory and optional packages
+| Package | Purpose |
+| ------- | ------- |
+| fail2ban | Detect and ban intruders |
+
+This is a list of currently supported and maintained (=auto updating package and configs) third party apps that can be installed
+
+| Package | Purpose |
+| ------- | ------- |
+| vsftpd | Secure FTP server |
+| nginx | Webserver, easy configurable |
+| webmin | Rather ugly, but useful server management / admin GUI, good for beginners |
+| certbot | Handy tool to get and maintain SSL certificates from Let's Encrypt |
+| docker | If you don't know what this is, you probably don't need it. |
+| portainer | Docker management UI |
+
 
 # TODO / Plans
 - Make the script more generic, allowing to add and remove certain features
@@ -34,3 +57,22 @@ The focus lies on the security aspect.
 - More options for the security measures (such as fail2ban)
 - Cronjob to regularly update everything
 - Certbot
+- Enable jails for third party apps
+- Security checks (suspicious networt traffic, rootkits etc.)
+- Time or condition limited service (vsftpd, custom servers)
+
+# Useful locations to keep in sight
+
+Important logs are in `/var/log`
+
+# Useful commands to keep in mind
+
+### List all IPs banned by fail2ban:
+`sudo zgrep 'Ban' /var/log/fail2ban.log*`
+
+### List all system groups pretty:
+`cut -d: -f1 /etc/group`
+
+### Get error logs if a service didn't start
+
+`sudo journalctl | grep -i <SERVICE NAME>`

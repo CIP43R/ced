@@ -11,6 +11,12 @@ aptlogloc=$cwd/logs/apt.log  # Logs produced by apt
 cmdlogloc=$cwd/logs/cmd.log  # Logs produced by applications run in here
 confirmed=false              # Check for prompt
 compared=false               # Check for string comparison in files
+os=cat /etc/os-release
+###
+# CMD args
+###
+
+
 
 ###
 # Colors
@@ -22,103 +28,11 @@ YELLOW="\\e[0;33m"
 ENDCOLOR="\\e[0m"
 
 ###
-# Global functions
+# Load scripts
 ###
-log() {
-  case $2 in
-    INFO)
-      printf "${BLUE}[INFO] $1\\n" | tee -a $logloc
-      ;;
-    WARN)
-      printf "${YELLOW}[WARN] $1\\n" | tee -a $logloc
-      ;;
-    ERROR)
-      printf "${RED}[ERROR] $1\\n" | tee -a $logloc
-      exit
-      ;;
-  esac
-  sleep 0.5
-}
-confirm() {
-  read -r -p "${1} [y/N] " response
-  if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-      confirmed=true
-  else
-      confirmed=false
-  fi
-}
-compare() {
-  if grep -wq "$1" $2; then 
-    compared=true
-  else 
-    compared=false
-  fi
-}
-replace() {
-  sed -i -e "s/$1/$2/g" "$3"
-}
-
-
-###
-# Installer functions
-###
-# Docker
-install_docker() {
-  apt install ca-certificates curl gnupg lsb-release -y &> $aptlogloc
-  mkdir -p /etc/apt/keyrings
-  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-  echo \
-    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-    $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-  apt update &> $aptlogloc
-  apt install docker-ce docker-ce-cli containerd.io docker-compose-plugin -y &> $aptlogloc
-  docker run hello-world || {
-    printf "Docker hello world container was not booted correctly. You need to check the installation and try again" ERROR
-  }
-  log "Installed docker successfully" INFO
-
-}
-# Install webmin
-install_webmin() {
-  wget http://prdownloads.sourceforge.net/webadmin/webmin_2.011_all.deb
-  dpkg --install webmin_2.011_all.deb &> $cmdlogloc || {
-    apt install perl libnet-ssleay-perl openssl libauthen-pam-perl libpam-runtime libio-pty-perl apt-show-versions python unzip shared-mime-info -y &> $aptlogloc
-    dpkg --install webmin_2.011_all.deb &> $cmdlogloc || {
-      log "Something went wrong while installing webmin." ERROR
-    }
-  }
-  log "Installed webmin successfully" INFO
-}
-# Nginx
-install_nginx() {
-  apt install nginx -y &> $aptlogloc
-  confirm "Installed nginx. Would you like to create a reverse proxy configuration right now?"
-  if [[ $confirmed = true ]]; then 
-    nano /etc/nginx/sites-available/reverse-proxies.conf
-    rm /etc/nginx/sites-available/default
-    rm /etc/nginx/sites-enabled/default
-    ln -s /etc/nginx/sites-available/* /etc/nginx/sites-enabled
-    nginx -t || {
-      log "There is an issue with the nginx config. Aborting..." ERROR
-    }
-  fi
-  log "Installed and configured nginx successfully"
-}
-install_portainer() {
-  if ! [ -x "$(command -v docker)" ]; then
-    install_docker
-  else
-    docker volume create portainer_data
-    docker run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest
-  fi
-  log "Installed portainer. Please open a browser and go to https://<yourip>:9443 to create a portainer admin user." INFO
-}
-backup() {
-  # Make a netplan backup to prevent network config issues
-  mkdir -p $cwd/backups/netplan
-  cp /etc/netplan/* $cwd/backups/netplan/
-  log "Created a copy of netplan config in $cwd/backups/netplan" INFO
-}
+source ./script/func.sh
+source ./script/apps.sh
+source ./script/sys.sh
 
 ###
 # Initial setup
@@ -145,8 +59,7 @@ if [[ $confirmed = true ]]; then
     adduser --disabled-password --gecos "" $adminusr
     usermod -aG sudo $adminusr
   } &> $cmdlogloc
-  echo "Fill in a password for the new user: "
-  read adminpwd
+  read -s -p "Fill in a password for the new user: " adminpwd
   usermod --password $adminpwd $adminusr &> $cmdlogloc
   unset adminpwd # for security
   cd $cwd # back to the roots
@@ -162,6 +75,8 @@ ufw allow ssh &> $cmdlogloc
 echo "y" | ufw --force enable &> $cmdlogloc
 log "Installed and enabled ufw firewall" INFO
 # Configure SSH
+mkdir /home/$adminusr/.ssh
+touch /home/$adminusr/.ssh/authorized_keys
 echo "Fill in RSA pub key: "
 read adminkey
 compare "$adminkey" /home/$adminusr/.ssh/authorized_keys
