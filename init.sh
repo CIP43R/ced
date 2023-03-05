@@ -75,7 +75,7 @@ ufw allow ssh &> $cmdlogloc
 echo "y" | ufw --force enable &> $cmdlogloc
 log "Installed and enabled ufw firewall" INFO
 # Configure SSH
-mkdir /home/$adminusr/.ssh
+mkdir -p /home/$adminusr/.ssh
 touch /home/$adminusr/.ssh/authorized_keys
 echo "Fill in RSA pub key: "
 read adminkey
@@ -145,7 +145,7 @@ fi
 # Third party software
 ###
 printf "Type in the corresponding numbers for third party software to install (separated by comma)"
-printf "\n1) NGINX\n2) Docker\n3) Webmin\n4) Portainer\n"
+printf "\n1) NGINX\n2) Docker\n3) Webmin\n4) Portainer\n5) vsftpd\n6) Certbot\n"
 read itps
 toinstall=$(echo $itps | tr "," "\n")
 for software in $toinstall
@@ -162,6 +162,12 @@ do
     ;;
     4)
     install_portainer
+    ;;
+    5)
+    install_vsftp
+    ;;
+    6)
+    install_certbot
     ;;
   esac
 done

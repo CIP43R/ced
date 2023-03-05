@@ -29,6 +29,6 @@ compare() {
   fi
 }
 replace() {
-  #sed -i -e "s/$1/$2/g" "$3"
-  tr $1 $2 < $3 # TODO: needs testing
+  sed -i -e "s/$1/$2/g" "$3"
+  #tr $1 $2 < $3 # TODO: needs testing
 }

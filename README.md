@@ -29,6 +29,8 @@ The script interactively guides you through several steps:
 - Optionally, you can install SELinux. Please read how it works, before installing it
 - After that, you can pick to install one or more third party applications: nginx, docker, webmin, etc. (full list below)
 
+As of now, it is meant to be executed **once**. There could be unexpected behavior when running it multiple times.
+
 # Expand / Edit
 You can just clone this repo to your server and adjust all the configs you'd like to.
 The original configs will be saved in /backup 
@@ -51,7 +53,7 @@ This is a list of currently supported and maintained (=auto updating package and
 
 
 # TODO / Plans
-- Make the script more generic, allowing to add and remove certain features
+- Make the script more generic, allowing to add and remove certain features, maybe as CLI
 - Refactor the script and make it more efficient and readable
 - Make the script usable for multi-user purposes
 - More options for the security measures (such as fail2ban)
@@ -60,6 +62,11 @@ This is a list of currently supported and maintained (=auto updating package and
 - Enable jails for third party apps
 - Security checks (suspicious networt traffic, rootkits etc.)
 - Time or condition limited service (vsftpd, custom servers)
+- Allow apache and certbot with apache, too
+- Add more comments
+
+# Things to keep in mind regarding security
+- Fail2ban basically detects intruders by checking the logs of certain applications. Each application will have a jail, which basically is a configuration to help fail2ban detect odd behavior. Whenever system authentication is being used (i.e. webmin), you technically don't have to add an extra jail, unless you want to filter it separately and have more distinct logs for your bans. Webmin however uses the same logs as SSH.
 
 # Useful locations to keep in sight
 
