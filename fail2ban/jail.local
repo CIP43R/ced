@@ -524,7 +524,6 @@ backend  = %(wuftpd_backend)s
 # logpath = %(syslog_authpriv)s
 # if you want to rely on PAM failed login attempts
 # vsftpd's failregex should match both of those formats
-enabled  = true
 port     = ftp,ftp-data,ftps,ftps-data
 logpath  = %(vsftpd_log)s
 
@@ -549,7 +548,6 @@ backend  = %(syslog_backend)s
 
 [postfix]
 # To use another modes set filter parameter "mode" in jail.local:
-enabled = true
 mode    = more
 port    = smtp,465,submission
 logpath = %(postfix_log)s
@@ -593,7 +591,6 @@ logpath = /service/qmail/log/main/current
 # but can be set by syslog_facility in the dovecot configuration.
 [dovecot]
 
-enabled = true
 port    = pop3,pop3s,imap,imaps,submission,465,sieve
 logpath = %(dovecot_log)s
 backend = %(dovecot_backend)s
