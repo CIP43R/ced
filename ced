@@ -1,5 +1,5 @@
-#!/bin/sudo
-# init.sh
+#!/bin/bash
+# ced
 # Script to setup a linux server with some basic apps and configs
 
 ###
