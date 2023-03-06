@@ -1,0 +1,150 @@
+#!/bin/bash
+
+setup_central_user() {
+  if [[ $(confirm "Do you want to create a new central sudo user? This is recommended if only root is available.") = true ]]; then
+    echo "Please type in a name for the new admin user: "
+    read adminusr
+    {
+      sudo adduser --disabled-password --gecos "" $adminusr
+      sudo usermod -aG sudo $adminusr
+    } &> $cmdlogloc
+    read -s -p "Fill in a password for the new user: " adminpwd
+    sudo usermod --password $adminpwd $adminusr &> $cmdlogloc
+    unset adminpwd # for security
+    cd $cwd # back to the roots
+    log "Created user $adminusr with sudo role" INFO
+  fi
+}
+
+setup_ufw() {
+  # Install ufw and allow ssh for next step
+  sudo apt install ufw -y &> $aptlogloc
+  sudo ufw allow ssh &> $cmdlogloc
+  echo "y" | sudo ufw --force enable &> $cmdlogloc
+  log "Installed and enabled ufw firewall" INFO
+}
+
+setup_ssh() {
+  # Configure SSH
+  mkdir -p /home/$adminusr/.ssh
+  touch /home/$adminusr/.ssh/authorized_keys
+  echo "Fill in RSA pub key: "
+  read adminkey
+  
+  if [[ $(compare "$adminkey" /home/$adminusr/.ssh/authorized_keys) = true ]]; then
+    log "SSH key already present. Skipping." INFO
+  else
+    echo $adminkey >> /home/$adminusr/.ssh/authorized_keys
+  fi
+  yes | sudo cp $third_party/ssh/sshd_config /etc/ssh/sshd_config
+  allowusers="AllowUsers $adminusr"
+  
+  if [[ $(compare "$allowusers" /etc/ssh/sshd_config) = true ]]; then
+    log "User already in allowed section. Skipping." INFO
+  else
+    echo "\n$allowusers" | sudo tee -a /etc/ssh/sshd_config
+  fi
+  log "Configured sshd to use RSA authentication only with provided key" INFO
+  # Optionally configure 2FA
+  
+  if [[ $(confirm "Enable 2FA (google authenticator?)") = true ]]; then
+    sudo apt install libpam-google-authenticator -y &> $aptlogloc
+    echo "Scan the following QR code with the google authenticator app and insert the code when prompted."
+    sudo -u $adminusr google-authenticator -t -d -f --step-size=30 --rate-limit=2 --rate-time=30
+
+    # Add google authenticator to pam config if not present
+    if [[ $(compare "auth required pam_google_authenticator.so" /etc/pam.d/sshd) = true ]]; then
+      log "Google authenticator already configured for PAM. Skipping..." INFO
+    else
+      echo "auth required pam_google_authenticator.so" >> /etc/pam.d/sshd
+    fi
+    replace "@include common-auth" "#@include common-auth" /etc/pam.d/sshd
+    replace "AuthenticationMethods publickey,password publickey" "AuthenticationMethods publickey,password publickey,keyboard-interactive" /etc/ssh/sshd_config
+    replace "UsePAM no" "UsePAM yes" /etc/ssh/sshd_config
+    log "Set up google authenticator for 2FA authentication" INFO
+  else
+    replace "AuthenticationMethods publickey,password publickey,keyboard-interactive" "AuthenticationMethods publickey,password publickey" /etc/ssh/sshd_config
+    replace "UsePAM yes" "UsePAM no" /etc/ssh/sshd_config
+    replace "#@include common-auth" "@include common-auth" /etc/pam.d/sshd
+  fi
+  systemctl restart sshd.service
+}
+
+setup_crontab() {
+  # Limit crontab to new root user
+  echo $adminusr | sudo tee -a /etc/cron.d/cron.allow
+  log "Added user to allowed crontab users: $adminusr." INFO
+}
+
+setup_fail2ban() {
+  # Install and setup fail2ban with custom config
+  log "Installing fail2ban" INFO
+  sudo apt install fail2ban -y &> $aptlogloc
+  yes | sudo cp $third_party/fail2ban/jail.local /etc/fail2ban/jail.local
+  yes | sudo cp $third_party/fail2ban/fail2ban.local /etc/fail2ban/fail2ban.local
+  yes | sudo cp $third_party/fail2ban/iptables-multiport.conf /etc/fail2ban/action.d/iptables-multiport.conf
+  sudo service fail2ban restart
+  log "Installed and configured fail2ban. May they come." INFO
+}
+
+setup_selinux() {
+  # SELinux
+  log "Installing SELinux. Do not interrupt the process." WARN
+  sudo systemctl stop apparmor
+  sudo systemctl disable apparmor
+  sudo apt install policycoreutils selinux-basics selinux-utils -y &> $aptlogloc
+  sudo selinux-activate &> $cmdlogloc
+  if ! [[ $(getenforce) =~ "Disabled" ]]; then
+    log "SELinux is not ready to work yet. Something went wrong while activating" ERROR
+  fi
+  log "Installed SELinux. System will be rebooted after successful setup." INFO
+
+}
+
+command_init_help() {
+  print_help "init" "
+    user: Setup a new central admin user
+    ufw: Install and enable ufw
+    ssh: Configure SSH and optionally enable 2FA
+    cron: Configure cron usage
+    fail2ban: Install and setup fail2ban
+  "
+  exit 1
+}
+
+command_init() {
+  case "$1" in
+    "all")
+    setup_central_user
+    setup_ufw
+    setup_ssh
+    setup_crontab
+    setup_fail2ban
+    if [[ $(confirm "Install SELinux for increased security? This will require advanced configuration") = true ]]; then
+      setup_selinux
+    fi
+    ;;
+    "user")
+    setup_central_user   
+    ;;
+    "ufw")
+    setup_ufw
+    ;;
+    "ssh")
+    ;;
+    "cron")
+    setup_crontab
+    ;;
+    "fail2ban")
+    setup_fail2ban
+    ;;
+    "selinux")
+    setup_selinux
+    ;;
+    *)
+    command_init_help
+    ;;
+  esac
+
+  log "Your system has been secured with some basic practises. You may go through one or many of these steps again by using ced init" INFO
+}

@@ -1,0 +1,16 @@
+#!/bin/bash
+
+help() {
+  cli_name=${0##*/}
+  echo "
+    $cli_use_name
+    CED CLI
+    Version: $(cat $cwd/VERSION)
+    Usage: $cli_use_name [command]
+    Commands:
+      deploy    Deploy
+      *         Help
+  "
+  exit 1
+}
+

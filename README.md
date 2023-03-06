@@ -53,13 +53,9 @@ This is a list of currently supported and maintained (=auto updating package and
 
 
 # TODO / Plans
-- Make the script more generic, allowing to add and remove certain features, maybe as CLI
-- Refactor the script and make it more efficient and readable
 - Make the script usable for multi-user purposes
 - More options for the security measures (such as fail2ban)
 - Cronjob to regularly update everything
-- Certbot
-- Enable jails for third party apps
 - Security checks (suspicious networt traffic, rootkits etc.)
 - Time or condition limited service (vsftpd, custom servers)
 - Allow apache and certbot with apache, too
@@ -67,6 +63,7 @@ This is a list of currently supported and maintained (=auto updating package and
 
 # Things to keep in mind regarding security
 - Fail2ban basically detects intruders by checking the logs of certain applications. Each application will have a jail, which basically is a configuration to help fail2ban detect odd behavior. Whenever system authentication is being used (i.e. webmin), you technically don't have to add an extra jail, unless you want to filter it separately and have more distinct logs for your bans. Webmin however uses the same logs as SSH.
+- VSFTPD is (here) configured to allow all local linux users to use ftp, but restricts them to only get access to their home dir. You should probably keep it this way. If you want to be extra safe you can specify a custom folder in the home folders to only give users access to a minimal portion.
 
 # Useful locations to keep in sight
 
