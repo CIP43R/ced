@@ -28,22 +28,21 @@ CYAN="\\e[0;36m"
 YELLOW="\\e[0;33m"
 ENDCOLOR="\\e[0m"
 
-echo "blas"
-# Load common functions and commands
-. $cwd/common/func.sh
-. $cwd/common/sys.sh
-. $cwd/commands/init
-. $cwd/commands/help
-. $cwd/commands/install
-
-# Call init function
-# TODO: bug
+# Create config file if not present
 touch $config_path
+
+# Load common functions and commands
+load_func() {
+  for filename in $1; do
+    . $filename
+  done
+}
+load_func($cwd/common/*.sh)
+load_func($cwd/common/*)
 
 # Validate arguments
 case "$1" in
   "")
-  echo "test"
   update
   if [[ $(prop "first_run" $config_path) = true ]]; then
     log "First time run" DEBUG

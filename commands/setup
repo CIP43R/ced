@@ -1,0 +1,58 @@
+#!/bin/bash
+
+setup_central_user() {
+  if [[ $(confirm "Do you want to create a new central sudo user? This is recommended if only root is available.") = true ]]; then
+    echo "Please type in a name for the new admin user: "
+    read adminusr
+    {
+      sudo adduser --disabled-password --gecos "" $adminusr
+      sudo usermod -aG sudo $adminusr
+    } &> $cmdlogloc
+    read -s -p "Fill in a password for the new user: " adminpwd
+    sudo usermod --password $adminpwd $adminusr &> $cmdlogloc
+    unset adminpwd # for security
+    cd $cwd # back to the roots
+    log "Created user $adminusr with sudo role" INFO
+  fi
+}
+
+setup_crontab() {
+  # Limit crontab to new root user
+  echo $adminusr | sudo tee -a /etc/cron.d/cron.allow
+  log "Added user to allowed crontab users: $adminusr." INFO
+}
+
+command_init_help() {
+  print_help "init" "
+    <none>: Will run setup with full setup and installation of most important apps  
+    user: Setup a new central admin user
+    cron: Configure cron usage
+  "
+  exit 1
+}
+
+command_init() {
+  case "$1" in
+    "")
+    setup_central_user
+    setup_crontab
+    install_ufw
+    install_ssh
+    install_fail2ban
+    if [[ $(confirm "Install SELinux for increased security? This will require advanced configuration") = true ]]; then
+      install_selinux
+    fi
+    ;;
+    "user")
+    setup_central_user   
+    ;;
+    "cron")
+    setup_crontab
+    ;;
+    *)
+    command_init_help
+    ;;
+  esac
+
+  log "Your system has been secured with some basic practises. You may go through one or many of these steps again by using ced init" INFO
+}

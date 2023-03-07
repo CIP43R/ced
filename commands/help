@@ -1,15 +1,15 @@
 #!/bin/bash
 
-help() {
-  cli_name=${0##*/}
+cli_help() {
   echo "
     $cli_use_name
     CED CLI
     Version: $(cat $cwd/VERSION)
     Usage: $cli_use_name [command]
     Commands:
-      deploy    Deploy
-      *         Help
+      setup    Essential server setup. Either pick a step or go through the entire setup again
+      install  Install essential or non-essential packages (maintained and updated)
+      *        Show help
   "
   exit 1
 }

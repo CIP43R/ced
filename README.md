@@ -7,6 +7,9 @@ curl https://raw.githubusercontent.com/CIP43R/setup-linux-server/master/install.
 wget -qO- https://raw.githubusercontent.com/CIP43R/setup-linux-server/master/install.sh && bash install.sh
 ```
 
+Then you can use `ced` everywhere on your machine to use this tool (it will add itself to the PATH env variable).
+The package itself will be copied into `/opt/ced`. Logs and backups will be placed in there, too.
+
 # What is this?
 This is just a small personal thing I created. I like experimenting with servers, so I often end up destroying mine in incredibly interesting ways.
 Sometimes it's easier to reinstall it, and since my snapshots are getting deleted after a while, I wanted to have a quick way of bootstrapping everything I need.
@@ -15,34 +18,31 @@ It's basically a small script that lets you pick some very basic but useful tool
 
 This repo is mostly just for my personal educational purposes! I'm experimenting with linux and am not an expert with either bash scripting or security measures. Please keep that in mind in case you want to use this for anything.
 
-# What can it do?
+However, I would like to help others learn aswell, so I will try my best to write down my experiences, practises and steps in comments (of course no guarantee that it will be 100% correct or perfect!)
+
+## What can it do?
 It can make your life easier if you i.e. just want to create a small server for testing, development, gaming whatever.
 The focus lies on the security aspect and easy configuration. I provided the (in my opinion) most useful and important things to have on a server, as well as the most crucial basic configurations for these.
 
-The script interactively guides you through several steps:
-- It will prompt whether you want to create a central sudo user that replaces root. If you skip this step, everything the script does related to the users (i.e. authentication) will be applied to the user that is running the script.
-- It will install ufw, a very handy and simple firewall tool, and configure it for ssh 
-- Then it will ask you for an RSA key, since in the next step, it will change the ssh config so that only pubkey authentication is allowed
-- Optionally, you can then enable MFA (2FA+). It will install google authenticator and prompt you to create a key.
-- As a safety measure, it will only allow the one user (either the created or the current) to use ssh, if desired this can be changed later. Same goes for crontab usage.
-- It will then install fail2ban and preconfigure it to permanently ban attackers. Standard jails for nginx and ssh will be enabled, others will be enabled automatically if the apps are desired to be installed (i.e. vsftpd)
-- Optionally, you can install SELinux. Please read how it works, before installing it
-- After that, you can pick to install one or more third party applications: nginx, docker, webmin, etc. (full list below)
-
-As of now, it is meant to be executed **once**. There could be unexpected behavior when running it multiple times.
-
 # Expand / Edit
-You can just clone this repo to your server and adjust all the configs you'd like to.
-The original configs will be saved in /backup 
+You can either create a `config.conf` from the `config.template`, or let the CLI use the defaults (also taken from `config.template`).
+You can just clone this repo to your server and adjust all the third party configs you'd like to. Since they are all in `thirdparty` you have all the configs you need in place!
+Protip: If you run `ced i configs <thirdparty app or *>`, all the config files will be backuped and copied again (also performs service restarts).
 
-# Full list of mandatory and optional packages
-| Package | Purpose |
-| ------- | ------- |
-| fail2ban | Detect and ban intruders |
+The original configs for all third party apps will be saved in /backup, everytime you use this tool. You can change this behavior by setting `backups` to either `overwrite` or `off` in your `config.conf` file.
 
-This is a list of currently supported and maintained (=auto updating package and configs) third party apps that can be installed
+# Full list of supported packages
+Some of these packages will be installed on first run automatically, because they are essential.
 
-| Package | Purpose |
+## Essential packages
+| Package | Purpose | Notes |
+| ------- | ------- | ----- |
+| fail2ban | Detect and ban intruders | 
+| ssh | openssh server to connect to your server | Will automatically be configured to use RSA and optionally 2FA (google auth) |
+| ufw | Simply but effective firewall |
+
+## Non-essential packages
+| Package | Purpose | 
 | ------- | ------- |
 | vsftpd | Secure FTP server |
 | nginx | Webserver, easy configurable |
@@ -50,7 +50,6 @@ This is a list of currently supported and maintained (=auto updating package and
 | certbot | Handy tool to get and maintain SSL certificates from Let's Encrypt |
 | docker | If you don't know what this is, you probably don't need it. |
 | portainer | Docker management UI |
-
 
 # TODO / Plans
 - Make the script usable for multi-user purposes
@@ -60,10 +59,14 @@ This is a list of currently supported and maintained (=auto updating package and
 - Time or condition limited service (vsftpd, custom servers)
 - Allow apache and certbot with apache, too
 - Add more comments
+- Proper check if certain packages are installed (those that are required)
 
 # Things to keep in mind regarding security
+- SSH servers should ideally be secured with RSA keys. They are a fair bit safer than passwords. It can be a bit tricky to set it up, especially for a beginner. You can easily misconfigure it and end up locking yourself out from your own server! This is why it's advised to test the connection in a new terminal before closing the one where you are adjusting your config. Because fun fact: The SSH session you are in will remain, even after changing the SSH config and restarting the service! That way you can test out different configurations and just open a new terminal to see if you can still login.
 - Fail2ban basically detects intruders by checking the logs of certain applications. Each application will have a jail, which basically is a configuration to help fail2ban detect odd behavior. Whenever system authentication is being used (i.e. webmin), you technically don't have to add an extra jail, unless you want to filter it separately and have more distinct logs for your bans. Webmin however uses the same logs as SSH.
 - VSFTPD is (here) configured to allow all local linux users to use ftp, but restricts them to only get access to their home dir. You should probably keep it this way. If you want to be extra safe you can specify a custom folder in the home folders to only give users access to a minimal portion.
+- SELinux is a great way to secure your server if you want to have more control over permissions & roles. However, it's quite complicated to set up and not recommended for a beginner (in my opinion)
+
 
 # Useful locations to keep in sight
 

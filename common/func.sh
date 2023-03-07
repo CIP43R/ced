@@ -71,3 +71,9 @@ file_exists() {
   else echo false
   fi
 }
+command_exists() {
+  if [ -x "$(command -v $1)" ]; then
+    echo true
+  else echo false
+  fi
+}
