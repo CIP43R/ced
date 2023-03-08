@@ -6,13 +6,14 @@
 # Vars
 ###
 export cwd=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd ) || /opt/ced
+export public_ip=$(curl -s http://whatismyip.akamai.com/)
 export third_party=$cwd/thirdparty
 export config_path=$cwd/config.conf
 export cli_use_name="ced"
-export logloc=$cwd/logs/install.log # Custom logs produced in this file
+export logloc=$cwd/logs/ced.log # Custom logs produced in this file
 export aptlogloc=$cwd/logs/apt.log  # Logs produced by apt 
 export cmdlogloc=$cwd/logs/cmd.log  # Logs produced by applications run in here
-export property=''
+export property=""
 export os=$(cat /etc/os-release)
 export curuser=$(who am i | awk '{print $1}')
 # export logname=$(logname 2> $logloc)
@@ -28,23 +29,25 @@ CYAN="\\e[0;36m"
 YELLOW="\\e[0;33m"
 ENDCOLOR="\\e[0m"
 
-# Create config file if not present
-touch $config_path
-
 # Load common functions and commands
 load_func() {
   for filename in $1; do
-    . $filename
+    . "$filename"
   done
 }
-load_func($cwd/common/*.sh)
-load_func($cwd/common/*)
+load_func "$cwd/common/*.sh"
+load_func "$cwd/commands/*"
+
+# Create config file if not present
+if [ $(file_exists $config_path) = false ]; then
+  cp $cwd/config.template $config_path
+fi
 
 # Validate arguments
 case "$1" in
   "")
   update
-  if [[ $(prop "first_run" $config_path) = true ]]; then
+  if [ $(getconf "first_run") = true ]; then
     log "First time run" DEBUG
     command_init "all"
     setconf "first_run" false

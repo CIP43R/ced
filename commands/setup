@@ -8,6 +8,7 @@ setup_central_user() {
       sudo adduser --disabled-password --gecos "" $adminusr
       sudo usermod -aG sudo $adminusr
     } &> $cmdlogloc
+
     read -s -p "Fill in a password for the new user: " adminpwd
     sudo usermod --password $adminpwd $adminusr &> $cmdlogloc
     unset adminpwd # for security
@@ -18,7 +19,7 @@ setup_central_user() {
 
 setup_crontab() {
   # Limit crontab to new root user
-  echo $adminusr | sudo tee -a /etc/cron.d/cron.allow
+  silent_tee $adminusr /etc/cron.d/cron.allow
   log "Added user to allowed crontab users: $adminusr." INFO
 }
 

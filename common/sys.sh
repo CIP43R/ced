@@ -17,5 +17,20 @@ update() {
   log "Updated system packages" INFO
 }
 jail() {
+  if [[ $(command_exists "fail2ban") = false ]]; then
+    install_fail2ban
+  fi
   replace "[$1]" "[$1]\nenabled=true" /etc/fail2ban/jail.local
+}
+nginx_ok() {
+  out=$(nginx -t 2>&1)
+  if $out; then
+    echo true
+  else
+    $out > $cmdlogloc
+    echo false
+  fi
+}
+silent_tee() {
+  echo $1 | sudo tee -a $2 &> /dev/null 
 }

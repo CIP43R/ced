@@ -31,6 +31,13 @@ Protip: If you run `ced i configs <thirdparty app or *>`, all the config files w
 
 The original configs for all third party apps will be saved in /backup, everytime you use this tool. You can change this behavior by setting `backups` to either `overwrite` or `off` in your `config.conf` file.
 
+## Config
+| Option | Explanation | Possible values |
+| ------ | ----------- | --------------- |
+| first_run | Whether this is the first run of the tool. Should not be touched, at least this won't give you anything | true, false |
+| log_level | The level at which certain logs will be shown (or hidden) | 1 = Debug, 2 = Verbose, 3 = Info, 4 = Warnings, 5 = Errors\nTip: Enable verbose logging if you want to understand what's happening behind the scenes ;D |
+
+
 # Full list of supported packages
 Some of these packages will be installed on first run automatically, because they are essential.
 
@@ -66,7 +73,7 @@ Some of these packages will be installed on first run automatically, because the
 - Fail2ban basically detects intruders by checking the logs of certain applications. Each application will have a jail, which basically is a configuration to help fail2ban detect odd behavior. Whenever system authentication is being used (i.e. webmin), you technically don't have to add an extra jail, unless you want to filter it separately and have more distinct logs for your bans. Webmin however uses the same logs as SSH.
 - VSFTPD is (here) configured to allow all local linux users to use ftp, but restricts them to only get access to their home dir. You should probably keep it this way. If you want to be extra safe you can specify a custom folder in the home folders to only give users access to a minimal portion.
 - SELinux is a great way to secure your server if you want to have more control over permissions & roles. However, it's quite complicated to set up and not recommended for a beginner (in my opinion)
-
+- Ports should be kept closed whenever possible. Each open port is a way for attackers to spam your server with more requests and attacks. If an app runs on a port in your local network (i.e. Webmin on 10000) it'd be better to create an nginx reverse proxy config and pass the incoming requests to http/https to that app. Opening the port of your app will allow everyone on the internet to access it.
 
 # Useful locations to keep in sight
 

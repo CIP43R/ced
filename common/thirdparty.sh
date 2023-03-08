@@ -3,8 +3,8 @@
 
 install_ssh() {
   # Install SSH
-  sudo apt-get install openssh-server
-  sudo systemctl enable ssh
+  sudo apt-get install openssh-server -y &> $aptlogloc
+  sudo systemctl enable ssh &> $cmdlogloc
 
   # Configure SSH
   mkdir -p /home/$adminusr/.ssh
@@ -17,7 +17,7 @@ install_ssh() {
   if [[ $(compare "$adminkey" /home/$adminusr/.ssh/authorized_keys) = true ]]; then
     log "SSH key already present. Skipping." INFO
   else
-    echo $adminkey | sudo tee -a /home/$adminusr/.ssh/authorized_keys
+    silent_tee $adminkey /home/$adminusr/.ssh/authorized_keys
   fi
 
   # Prepare allowed users and copy our SSH config (not waiting for config to keep our config clean)
@@ -28,7 +28,7 @@ install_ssh() {
   if [[ $(compare "$allowusers" /etc/ssh/sshd_config) = true ]]; then
     log "User already in allowed section. Skipping." INFO
   else
-    echo "\n$allowusers" | sudo tee -a /etc/ssh/sshd_config
+    silent_tee "$allowusers" /etc/ssh/sshd_config
   fi
   log "Configured sshd to use RSA authentication only with provided key" INFO
 
@@ -38,13 +38,13 @@ install_ssh() {
     echo "Scan the following QR code with the google authenticator app and insert the code when prompted."
     # Make sure to set the parameters here to prevent long annoying interactive mode. These are the recommended settings
     # https://manpages.ubuntu.com/manpages/impish/man8/pam_google_authenticator.8.html
-    sudo -u $adminusr google-authenticator -t -d -f --step-size=30 --rate-limit=2 --rate-time=30
+    sudo -u $adminusr google-authenticator -t -d -f --step-size=30 --rate-limit=2 --rate-time=30 --window-size=3
 
     # Add google authenticator to pam config if not present
     if [[ $(compare "auth required pam_google_authenticator.so" /etc/pam.d/sshd) = true ]]; then
       log "Google authenticator already configured for PAM. Skipping..." INFO
     else
-      echo "auth required pam_google_authenticator.so" >> /etc/pam.d/sshd
+      silent_tee "auth required pam_google_authenticator.so" /etc/pam.d/sshd
     fi
     # Replace pam and ssh config properties to use PAM (required for google auth) and add keyboard interactive method for auth
     replace "@include common-auth" "#@include common-auth" /etc/pam.d/sshd
@@ -60,17 +60,10 @@ install_ssh() {
   sudo systemctl restart sshd.service
 
   # Allow ufw
-  # TODO: this logic can be simplified, but I'm too lazy for this now :D
-  if [[ "command_exists ufw" == false ]]; then
-    if [[ $(confirm "No ufw installation found. Would you like to install it now (will apply iptables config otherwise?") = true ]]; then 
-        install_ufw
-        sudo ufw allow ssh &> $cmdlogloc
-    else 
-        sudo iptables -A OUTPUT -p tcp --sport 22 -j ACCEPT
-    fi
-  else
-    sudo ufw allow ssh &> $cmdlogloc
-  fi
+  if [ $(command_exists "ufw") = false ]; then
+    install_ufw
+  fi 
+  sudo ufw allow ssh
 }
 
 install_ufw() {
@@ -101,25 +94,28 @@ install_selinux() {
   sudo selinux-activate &> $cmdlogloc
   if ! [[ $(getenforce) =~ "Disabled" ]]; then
     log "SELinux is not ready to work yet. Something went wrong while activating" ERROR
+    exit 1
   fi
   log "Installed SELinux. System will be rebooted after successful setup." INFO
 }
 
 install_docker() {
-  log "Installing docker...Please wait" INFO
-
+  
   # Install and test installation
+  log "Installing docker...Please wait" INFO
   sudo apt install ca-certificates curl gnupg lsb-release -y &> $aptlogloc
   sudo mkdir -p /etc/apt/keyrings
   curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-  echo \
+  silent_tee \
     "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-    $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    $(lsb_release -cs) stable" /etc/apt/sources.list.d/docker.list
   sudo apt update &> $aptlogloc
   sudo apt install docker-ce docker-ce-cli containerd.io docker-compose-plugin -y &> $aptlogloc
+
+  # Run test container to see if it works or not
   docker run hello-world || {
-    printf "Docker hello world container was not booted correctly. You need to check the installation and try again" ERROR
-    return [n]
+    log "Docker hello world container was not booted correctly. You need to check the installation and try again" ERROR
+    exit 1
   }
   log "Installed docker successfully" INFO
 
@@ -131,12 +127,22 @@ install_webmin() {
   # Install or install requirements and try again if unsuccessful
   wget http://prdownloads.sourceforge.net/webadmin/webmin_2.011_all.deb
   sudo dpkg --install webmin_2.011_all.deb &> $cmdlogloc || {
-    apt install perl libnet-ssleay-perl openssl libauthen-pam-perl libpam-runtime libio-pty-perl apt-show-versions python unzip shared-mime-info -y &> $aptlogloc
+    sudo apt install perl libnet-ssleay-perl openssl libauthen-pam-perl libpam-runtime libio-pty-perl apt-show-versions python unzip shared-mime-info -y &> $aptlogloc
     sudo dpkg --install webmin_2.011_all.deb &> $cmdlogloc || {
       log "Something went wrong while installing webmin." ERROR
-      return [n]
+      exit 1
     }
   }
+
+  # Check for nginx config
+  if [[ $(confirm "Would you like me to create a reverse config for webmin to be accessible through the internet?") = true ]]; then
+    read -p "Please enter a hostname for webmin (i.e. webmin.yourdomain.com):" hostname
+    sudo cp $third_party/nginx/webmin.conf /etc/nginx/sites-available
+    replace "{HOSTNAME}" $hostname "/etc/nginx/sites-available/webmin.conf"
+
+    # TODO: ask for cert!
+    sudo service nginx restart
+  fi
   
   # Add to fail2ban jail
   jail "webmin-auth"
@@ -145,54 +151,79 @@ install_webmin() {
 }
 
 install_nginx() {
-  log "Installing nginx...Please wait" INFO
-
   # Install and optionally add a reverse proxy conf
+  log "Installing nginx...Please wait" INFO
   sudo apt install nginx -y &> $aptlogloc
+
+  # Remove default nginx config
+  log "Removing default nginx config" VERBOSE
+  sudo rm /etc/nginx/sites-available/default
+  sudo rm /etc/nginx/sites-enabled/default
+
+  # Create symlink (good practise)
+  log "Creating symlink from sites-available to sites-enabled" VERBOSE
+  sudo ln -s /etc/nginx/sites-available/* /etc/nginx/sites-enabled
+
+  # Optionally create nginx config
   if [[ $(confirm "Installed nginx. Would you like to create a reverse proxy configuration right now?") = true ]]; then 
     sudo nano /etc/nginx/sites-available/reverse-proxies.conf
-    sudo rm /etc/nginx/sites-available/default
-    sudo rm /etc/nginx/sites-enabled/default
-    sudo ln -s /etc/nginx/sites-available/* /etc/nginx/sites-enabled
-    sudo nginx -t || {
-      log "There is an issue with the nginx config. Aborting..." ERROR
-      return [n]
-    }
+    # Check nginx config
+    if [ $(nginx_ok) = false ]; then
+      log "There is an issue with the nginx config. Please check the logs at $cmdlogloc" ERROR
+      exit 1
+    else
+      log "Created /etc/nginx/sites-available/reverse-proxies.conf and tested it! You're good to go." INFO
+    fi
   fi
 
   # Restart nginx
+  log "Restarting nginx service" DEBUG
   sudo service nginx restart
 
-  # Add to fail2ban jail and restart
+  # Add to fail2ban jail and restart its service
+  log "Adding nginx http authentication to fail2ban" DEBUG
   jail "[nginx-http-auth]"
+  log "Restarting fail2ban service" DEBUG
   sudo service fail2ban restart
 
-  log "Installed and configured nginx successfully"
+  log "Installed and configured nginx successfully" INFO
 }
 
 install_portainer() {
   log "Installing portainer...Please wait" INFO
 
   # Check if docker installed, otherwise prompt for install
-  if [[ "$(command_exists docker)" == false ]]; then
+  if [ $(command_exists "docker") = false ]; then
     if [[ $(confirm "No docker installation found. Would you like to install it now (required to install portainer)?") = true ]]; then 
       install_docker
-      docker volume create portainer_data
-      docker run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest
-    else return [n]
+    else 
+      LOG "Portainer installation cancelled." INFO
+      return [n]
     fi
-  else
-    docker volume create portainer_data
-    docker run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest
   fi
-  log "Installed portainer. Please open a browser and go to https://<yourip>:9443 to create a portainer admin user." INFO
+  
+  # Add portainer volume and run its docker container on exposed default port
+  docker volume create portainer_data
+  docker run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest
+  
+  # Check for nginx config
+  if [[ $(confirm "Would you like me to create a reverse config for portainer to be accessible through the internet?") = true ]]; then
+    read -p "Please enter a hostname for portainer (i.e. portainer.yourdomain.com):" hostname
+    sudo cp $third_party/nginx/portainer.conf /etc/nginx/sites-available
+    replace "{HOSTNAME}" $hostname "/etc/nginx/sites-available/portainer.conf"
+
+    # TODO: ask for cert!
+    sudo service nginx restart
+  fi
+
+  log "Installed portainer.Open a browser and go to http://${hostname:-public_ip} to create a portainer admin user." INFO
 }
 
 install_vsftp() {
-  log "Installing vsftpd...Please wait" INFO
-
   # Install and create cert for vsftpd
-  sudo apt-get -y install vsftpd
+  log "Installing vsftpd...Please wait" INFO
+  sudo apt-get install vsftpd -y &> $aptlogloc
+
   # Check if passive or active mode. Currently it's only for passive mode.
   # TODO: make sure to renew this
   sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/vsftpd.pem -out /etc/ssl/private/vsftpd.pem
@@ -205,6 +236,9 @@ install_vsftp() {
   sudo cp $third_party/vsftpd/vsftpd.conf /etc/vsftpd.conf
 
   # Allow ports for vsftpd
+  if [ $(command_exists "ufw") = false ]; then
+    install_ufw
+  fi 
   sudo ufw allow 20/tcp,21/tcp,990/tcp,40000:50000/tcp
 
   # Add to fail2ban jail
@@ -219,24 +253,32 @@ install_vsftp() {
 
 install_certbot() {
   # Install certbot for nginx
-  sudo apt install -y certbot python3-certbot-nginx
+  log "Installing and configuring certbot..." INFO
+  sudo apt install certbot python3-certbot-nginx -y &> $aptlogloc
 
   # Check if there's any nginx config
-  files=$(shopt -s nullglob dotglob; echo /etc/nginx/sites-enabled/*)
-  if ! [ "${#files}" ]; then
+  if [ $(any_file_exists "/etc/nginx/sites-enabled/*") = false ]; then
     log "There is no nginx config present. Certbot will not work without one. Aborting..." WARN
     return [n]
   fi
+
   # Allow full nginx profile and remove only the http rules (since http traffic will be redirected when using certs)
+  log "Allow full nginx profile except for HTTP using ufw" VERBOSE
+  if [ $(command_exists "ufw") = false ]; then
+    install_ufw
+  fi 
   sudo ufw allow 'Nginx Full'
   sudo ufw delete allow 'Nginx HTTP'
 
+
   # Check if certbot installation was alright
+  log "Testing certbot installation by running a dry run renew" VERBOSE
   sudo certbot renew --dry-run || {
     log "It seems like there's an error with the certbot/nginx configuration. Please check your config and run certbot again." ERROR
-    return [n]
+    exit 1
   }
 
   # Install renew cronjob
+  log "Installing auto cert renew cronjob" VERBOSE
   crontab -l | { cat; echo "0 12 * * * /usr/bin/certbot renew --quiet"; } | crontab -
 }
