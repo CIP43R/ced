@@ -1,4 +1,4 @@
 first_run=true
 
 # 1 DEBUG, 2 VERBOSE, 3...
-log_level=5
+log_level=1

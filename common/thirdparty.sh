@@ -1,23 +1,25 @@
 #!/bin/bash
 
-
 install_ssh() {
   # Install SSH
+  log "Installing openSSH Server" INFO
   sudo apt-get install openssh-server -y &> $aptlogloc
   sudo systemctl enable ssh &> $cmdlogloc
 
   # Configure SSH
   mkdir -p /home/$adminusr/.ssh
   touch /home/$adminusr/.ssh/authorized_keys
-  echo "Fill in RSA pub key: "
-  read adminkey
+  read -p "Fill in RSA pub key (leave empty to skip): " adminkey
   
-  # Check if the given SSH key already exists, otherwise add it to the authorized keys
   # TODO: change target dir to whatever will be in the sshd config at this time, and only default to home
-  if [[ $(compare "$adminkey" /home/$adminusr/.ssh/authorized_keys) = true ]]; then
-    log "SSH key already present. Skipping." INFO
-  else
-    silent_tee $adminkey /home/$adminusr/.ssh/authorized_keys
+  # Check if skipped
+  if [ -z "$adminkey" ]; then
+    # Check if the given SSH key already exists, otherwise add it to the authorized keys
+    if [[ $(file_contains "$adminkey" /home/$adminusr/.ssh/authorized_keys) = true ]]; then
+      log "SSH key already present. Skipping." INFO
+    else
+      silent_tee "$adminkey" /home/$adminusr/.ssh/authorized_keys
+    fi
   fi
 
   # Prepare allowed users and copy our SSH config (not waiting for config to keep our config clean)
@@ -25,7 +27,7 @@ install_ssh() {
   yes | sudo cp $third_party/ssh/sshd_config /etc/ssh/sshd_config
 
   # Check if allowed user already present
-  if [[ $(compare "$allowusers" /etc/ssh/sshd_config) = true ]]; then
+  if [[ $(file_contains "$allowusers" /etc/ssh/sshd_config) = true ]]; then
     log "User already in allowed section. Skipping." INFO
   else
     silent_tee "$allowusers" /etc/ssh/sshd_config
@@ -41,8 +43,8 @@ install_ssh() {
     sudo -u $adminusr google-authenticator -t -d -f --step-size=30 --rate-limit=2 --rate-time=30 --window-size=3
 
     # Add google authenticator to pam config if not present
-    if [[ $(compare "auth required pam_google_authenticator.so" /etc/pam.d/sshd) = true ]]; then
-      log "Google authenticator already configured for PAM. Skipping..." INFO
+    if [[ $(file_contains "auth required pam_google_authenticator.so" /etc/pam.d/sshd) = true ]]; then
+      log "Google authenticator already configured for PAM. Skipping..." VERBOSE
     else
       silent_tee "auth required pam_google_authenticator.so" /etc/pam.d/sshd
     fi
@@ -53,6 +55,7 @@ install_ssh() {
     log "Set up google authenticator for 2FA authentication" INFO
   else
     # Replace pam and ssh config properties to NOT use PAM (required only for google auth) and remove keyboard interactive method for auth
+    replace "auth required pam_google_authenticator.so" "" /etc/pam.d/sshd
     replace "AuthenticationMethods publickey,password publickey,keyboard-interactive" "AuthenticationMethods publickey,password publickey" /etc/ssh/sshd_config
     replace "UsePAM yes" "UsePAM no" /etc/ssh/sshd_config
     replace "#@include common-auth" "@include common-auth" /etc/pam.d/sshd
@@ -68,6 +71,7 @@ install_ssh() {
 
 install_ufw() {
   # Install ufw
+  log "Installing ufw firewall" INFO
   sudo apt install ufw -y &> $aptlogloc
   echo "y" | sudo ufw --force enable &> $cmdlogloc
   log "Installed and enabled ufw firewall" INFO
@@ -77,9 +81,9 @@ install_fail2ban() {
   # Install and setup fail2ban with custom config
   log "Installing fail2ban" INFO
   sudo apt install fail2ban -y &> $aptlogloc
-  yes | sudo cp $third_party/fail2ban/jail.local /etc/fail2ban/jail.local
-  yes | sudo cp $third_party/fail2ban/fail2ban.local /etc/fail2ban/fail2ban.local
-  yes | sudo cp $third_party/fail2ban/iptables-multiport.conf /etc/fail2ban/action.d/iptables-multiport.conf
+  yes | sudo cp $third_party/fail2ban/jail.local /etc/fail2ban/
+  yes | sudo cp $third_party/fail2ban/fail2ban.local /etc/fail2ban/
+  yes | sudo cp $third_party/fail2ban/iptables-multiport.conf /etc/fail2ban/action.d/
   sudo service fail2ban restart
   log "Installed and configured fail2ban. May they come." INFO
 }
@@ -100,7 +104,6 @@ install_selinux() {
 }
 
 install_docker() {
-  
   # Install and test installation
   log "Installing docker...Please wait" INFO
   sudo apt install ca-certificates curl gnupg lsb-release -y &> $aptlogloc
@@ -230,10 +233,10 @@ install_vsftp() {
 
   # Backup old config
   timestamp=$(date +%s)
-  sudo cp /etc/vsftpd.conf $cwd/backups/vsftpd/$timestamp/vsftpd.conf
+  sudo cp /etc/vsftpd.conf $cwd/backups/vsftpd/$timestamp/
 
   # Copy our config
-  sudo cp $third_party/vsftpd/vsftpd.conf /etc/vsftpd.conf
+  sudo cp $third_party/vsftpd/vsftpd.conf /etc/
 
   # Allow ports for vsftpd
   if [ $(command_exists "ufw") = false ]; then

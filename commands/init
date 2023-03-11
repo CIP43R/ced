@@ -19,7 +19,7 @@ setup_central_user() {
 
 setup_crontab() {
   # Limit crontab to new root user
-  silent_tee $adminusr /etc/cron.d/cron.allow
+  silent_tee "$adminusr" /etc/cron.d/cron.allow
   log "Added user to allowed crontab users: $adminusr." INFO
 }
 
@@ -33,27 +33,31 @@ command_init_help() {
 }
 
 command_init() {
-  case "$1" in
+  while [[ $# -gt -1 ]]; do
+  case $1 in
     "")
-    setup_central_user
-    setup_crontab
-    install_ufw
-    install_ssh
-    install_fail2ban
-    if [[ $(confirm "Install SELinux for increased security? This will require advanced configuration") = true ]]; then
-      install_selinux
-    fi
-    ;;
+      setup_central_user
+      setup_crontab
+      install_ufw
+      install_ssh
+      install_fail2ban
+      if [[ $(confirm "Install SELinux for increased security? This will require advanced configuration") = true ]]; then
+        install_selinux
+      fi
+      log "Your system has been secured with some basic practises. You may go through one or many of these steps again by using ced init" INFO
+      exit 0
+      ;;
     "user")
-    setup_central_user   
-    ;;
+      setup_central_user
+      shift
+      ;;
     "cron")
-    setup_crontab
-    ;;
+      setup_crontab
+      shift
+      ;;
     *)
-    command_init_help
-    ;;
-  esac
-
-  log "Your system has been secured with some basic practises. You may go through one or many of these steps again by using ced init" INFO
+      command_init_help
+      ;;
+    esac
+  done
 }

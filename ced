@@ -32,7 +32,7 @@ ENDCOLOR="\\e[0m"
 # Load common functions and commands
 load_func() {
   for filename in $1; do
-    . "$filename"
+    source "$filename"
   done
 }
 load_func "$cwd/common/*.sh"
@@ -43,25 +43,32 @@ if [ $(file_exists $config_path) = false ]; then
   cp $cwd/config.template $config_path
 fi
 
-# Validate arguments
-case "$1" in
+case $1 in
   "")
-  update
-  if [ $(getconf "first_run") = true ]; then
-    log "First time run" DEBUG
-    command_init "all"
-    setconf "first_run" false
-  fi
-  ;;
-  init)
-  update
-  command_init $2
-  ;;
-  i|install)
-  update
-  command_install $2
-  ;;
+    update
+    if [ $(getconf "first_run") = true ]; then
+      log "First time run" DEBUG
+      command_init ""
+      setconf "first_run" false
+    fi
+    exit 0
+    ;;
+  -i|--install)
+    shift
+    update
+    command_install $@
+    ;;
+  -s|--setup)
+    update
+    command_init $2
+    ;;
+  help)
+    cli_help
+    ;;
+  -*|--*)
+    echo "Unknown option $1. Use ced help to show a list of options"
+    ;;
   *)
-  cli_help
-  ;;
+    cli_help
+    ;;
 esac

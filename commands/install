@@ -13,52 +13,66 @@ command_install_help() {
 }
 
 command_install() {
-  case "$1" in
+  while [[ $# -gt 0 ]]; do
+  case $1 in
     "all")
-    install_ufw
-    install_ssh
-    install_fail2ban
-    install_docker
-    install_webmin
-    install_nginx
-    install_portainer
-    install_vsftpd
-    install_certbot
-    ;;
+      install_ufw
+      install_ssh
+      install_fail2ban
+      install_docker
+      install_webmin
+      install_nginx
+      install_portainer
+      install_vsftpd
+      install_certbot
+      log "Successfully installed all packages." INFO
+      exit 0
+      ;;
     "ufw")
-    install_ufw
-    ;;
+      install_ufw
+      shift
+      ;;
     "fail2ban")
-    install_fail2ban
-    ;;
+      install_fail2ban
+      shift
+      ;;
     "ssh")
-    install_ssh
-    ;;
+      install_ssh
+      shift
+      ;;
     "docker")
-    install_docker   
-    ;;
+      install_docker
+      shift
+      ;;
     "webmin")
-    install_webmin
-    ;;
+      install_webmin
+      shift
+      ;;
     "nginx")
-    install_nginx
-    ;;
+      install_nginx
+      shift
+      ;;
     "selinux")
-    install_selinux
-    ;;
+      install_selinux
+      shift
+      ;;
     "portainer")
-    install_portainer
-    ;;
+      install_portainer
+      shift
+      ;;
     "vsftpd")
-    install_vsftpd
-    ;;
+      install_vsftpd
+      shift
+      ;;
     "certbot")
-    install_certbot
-    ;;
+      install_certbot
+      shift
+      ;;
     *)
-    command_install_help
-    ;;
-  esac
+      command_install_help
+      ;;
+    esac
+  done
 
-  log "Installation complete." INFO
+  log "Successfully installed all requested packages." INFO
 }
