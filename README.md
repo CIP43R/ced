@@ -67,6 +67,7 @@ Some of these packages will be installed on first run automatically, because the
 - Allow apache and certbot with apache, too
 - Add more comments
 - Proper check if certain packages are installed (those that are required)
+- More functionality (ced nginx add, ced nginx activate/deactivate etc.)
 
 # Things to keep in mind regarding security
 - SSH servers should ideally be secured with RSA keys. They are a fair bit safer than passwords. It can be a bit tricky to set it up, especially for a beginner. You can easily misconfigure it and end up locking yourself out from your own server! This is why it's advised to test the connection in a new terminal before closing the one where you are adjusting your config. Because fun fact: The SSH session you are in will remain, even after changing the SSH config and restarting the service! That way you can test out different configurations and just open a new terminal to see if you can still login.

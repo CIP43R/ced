@@ -2,3 +2,5 @@ first_run=true
 
 # 1 DEBUG, 2 VERBOSE, 3...
 log_level=1
+
+custom_install=ufw,ssh,fail2ban,docker,nginx,portainer,vsftpd,certbot

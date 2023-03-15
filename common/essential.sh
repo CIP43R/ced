@@ -1,27 +1,27 @@
 #!/bin/bash
 
 log() {
-  config_log_level=$(getconf "log_level")
+  config_log_level=$(get_conf "log_level")
   log_level=${config_log_level:-2}
   
   case $2 in
     DEBUG)
-      if [[ $(getconf "log_level") -lt 1 ]]; then
+      if [[ $(get_conf "log_level") -lt 1 ]]; then
         printf "${BLUE}[DEBUG] $1\\n" | tee -a $logloc
       fi
       ;;
     VERBOSE)
-      if [[ $(getconf "log_level") -lt 2 ]]; then
+      if [[ $(get_conf "log_level") -lt 2 ]]; then
         printf "${BLUE}[VERBOSE] $1\\n" | tee -a $logloc
       fi
       ;;
     INFO)
-      if [[ $(getconf "log_level") -lt 3 ]]; then
+      if [[ $(get_conf "log_level") -lt 3 ]]; then
         printf "${BLUE}[INFO] $1\\n" | tee -a $logloc
       fi
       ;;
     WARN)
-      if [[ $(getconf "log_level") -lt 3 ]]; then
+      if [[ $(get_conf "log_level") -lt 3 ]]; then
       printf "${YELLOW}[WARN] $1\\n" | tee -a $logloc
       fi
       ;;
@@ -30,7 +30,7 @@ log() {
       exit 32
       ;;
     *)
-      printf "Wrong call!"
+      printf "Wrong call! $2"
       ;;
   esac
 }
@@ -46,10 +46,10 @@ print_help() {
   "
 }
 
-getconf() {
+get_conf() {
   echo $(get_prop $1 $config_path)
 }
-setconf() {
+set_conf() {
   set_prop $1 $2 $config_path
 }
 command_exists() {

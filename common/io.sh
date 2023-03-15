@@ -21,7 +21,7 @@ file_contains() {
 # $3: File where we should replace the occurance
 # Warning: Replaces ALL occurances!
 replace() {
-  sudo sed -i -e "s/$1/$2/g" "$3"
+  sudo sed -i -e "s/$1/$2/g" "$3" # TODO: 
   #tr $1 $2 < $3 # TODO: needs testing
 }
 

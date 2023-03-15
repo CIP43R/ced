@@ -23,16 +23,7 @@ setup_crontab() {
   log "Added user to allowed crontab users: $adminusr." INFO
 }
 
-command_init_help() {
-  print_help "init" "
-    <none>: Will run setup with full setup and installation of most important apps  
-    user: Setup a new central admin user
-    cron: Configure cron usage
-  "
-  exit 1
-}
-
-command_init() {
+command_setup() {
   while [[ $# -gt -1 ]]; do
   case $1 in
     "")

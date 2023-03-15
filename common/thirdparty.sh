@@ -66,7 +66,7 @@ install_ssh() {
   if [ $(command_exists "ufw") = false ]; then
     install_ufw
   fi 
-  sudo ufw allow ssh
+  sudo ufw allow ssh &> $aptlogloc
 }
 
 install_ufw() {
@@ -108,7 +108,7 @@ install_docker() {
   log "Installing docker...Please wait" INFO
   sudo apt install ca-certificates curl gnupg lsb-release -y &> $aptlogloc
   sudo mkdir -p /etc/apt/keyrings
-  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --yes --dearmor -o /etc/apt/keyrings/docker.gpg
   silent_tee \
     "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
     $(lsb_release -cs) stable" /etc/apt/sources.list.d/docker.list
@@ -116,7 +116,7 @@ install_docker() {
   sudo apt install docker-ce docker-ce-cli containerd.io docker-compose-plugin -y &> $aptlogloc
 
   # Run test container to see if it works or not
-  docker run hello-world || {
+  sudo docker run hello-world 2> $aptlogloc || {
     log "Docker hello world container was not booted correctly. You need to check the installation and try again" ERROR
     exit 1
   }
@@ -160,23 +160,15 @@ install_nginx() {
 
   # Remove default nginx config
   log "Removing default nginx config" VERBOSE
-  sudo rm /etc/nginx/sites-available/default
-  sudo rm /etc/nginx/sites-enabled/default
-
-  # Create symlink (good practise)
-  log "Creating symlink from sites-available to sites-enabled" VERBOSE
-  sudo ln -s /etc/nginx/sites-available/* /etc/nginx/sites-enabled
+  #sudo rm -f /etc/nginx/sites-available/default
+  #sudo rm -f /etc/nginx/sites-enabled/default
 
   # Optionally create nginx config
   if [[ $(confirm "Installed nginx. Would you like to create a reverse proxy configuration right now?") = true ]]; then 
     sudo nano /etc/nginx/sites-available/reverse-proxies.conf
-    # Check nginx config
-    if [ $(nginx_ok) = false ]; then
-      log "There is an issue with the nginx config. Please check the logs at $cmdlogloc" ERROR
-      exit 1
-    else
-      log "Created /etc/nginx/sites-available/reverse-proxies.conf and tested it! You're good to go." INFO
-    fi
+    nginx_link
+    nginx_ok
+    log "Created /etc/nginx/sites-available/reverse-proxies.conf and tested it! You're good to go." INFO
   fi
 
   # Restart nginx
@@ -185,7 +177,7 @@ install_nginx() {
 
   # Add to fail2ban jail and restart its service
   log "Adding nginx http authentication to fail2ban" DEBUG
-  jail "[nginx-http-auth]"
+  jail "[nginx-http-auth]" # TODO error here
   log "Restarting fail2ban service" DEBUG
   sudo service fail2ban restart
 
@@ -196,25 +188,28 @@ install_portainer() {
   log "Installing portainer...Please wait" INFO
 
   # Check if docker installed, otherwise prompt for install
-  if [ $(command_exists "docker") = false ]; then
+  # TODO error fix
+  if [ $(command_exists "docker") = false ]; then
     if [[ $(confirm "No docker installation found. Would you like to install it now (required to install portainer)?") = true ]]; then 
       install_docker
     else 
-      LOG "Portainer installation cancelled." INFO
+      log "Portainer installation cancelled." INFO
       return [n]
     fi
   fi
   
   # Add portainer volume and run its docker container on exposed default port
-  docker volume create portainer_data
-  docker run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest
+  log "Creating portainer volume and running container..." INFO
+  sudo docker volume create portainer_data 2> $aptlogloc
+  sudo docker run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest 2> $aptlogloc
   
   # Check for nginx config
   if [[ $(confirm "Would you like me to create a reverse config for portainer to be accessible through the internet?") = true ]]; then
     read -p "Please enter a hostname for portainer (i.e. portainer.yourdomain.com):" hostname
     sudo cp $third_party/nginx/portainer.conf /etc/nginx/sites-available
     replace "{HOSTNAME}" $hostname "/etc/nginx/sites-available/portainer.conf"
-
+    nginx_link
+    nginx_ok
     # TODO: ask for cert!
     sudo service nginx restart
   fi
@@ -242,7 +237,7 @@ install_vsftp() {
   if [ $(command_exists "ufw") = false ]; then
     install_ufw
   fi 
-  sudo ufw allow 20/tcp,21/tcp,990/tcp,40000:50000/tcp
+  sudo ufw allow 20/tcp,21/tcp,990/tcp,40000:50000/tcp &> $aptlogloc
 
   # Add to fail2ban jail
   jail "vsftpd"
@@ -270,8 +265,8 @@ install_certbot() {
   if [ $(command_exists "ufw") = false ]; then
     install_ufw
   fi 
-  sudo ufw allow 'Nginx Full'
-  sudo ufw delete allow 'Nginx HTTP'
+  sudo ufw allow 'Nginx Full' &> $aptlogloc
+  sudo ufw delete allow 'Nginx HTTP' &> $aptlogloc
 
 
   # Check if certbot installation was alright

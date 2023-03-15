@@ -1,16 +1,5 @@
 #!/bin/bash
 
-command_install_help() {
-  print_help "install" "
-    docker:
-    webmin:
-    nginx:
-    portainer:
-    vsftpd:
-    certbot:
-  "
-  exit 1
-}
 
 command_install() {
   while [[ $# -gt 0 ]]; do
@@ -26,6 +15,22 @@ command_install() {
       install_vsftpd
       install_certbot
       log "Successfully installed all packages." INFO
+      exit 0
+      ;;
+    "custom")
+      log "Loading custom config for install..." INFO
+      variable=$(get_conf "custom_install")
+      for v in $(echo $variable | sed "s/,/ /g")
+      do
+        install_$v
+      done
+      exit 0
+      ;;
+    "essential")
+      install_ufw
+      install_ssh
+      install_fail2ban
+      log "Successfully installed essential packages." INFO
       exit 0
       ;;
     "ufw")

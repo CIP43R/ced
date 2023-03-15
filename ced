@@ -46,27 +46,28 @@ fi
 case $1 in
   "")
     update
-    if [ $(getconf "first_run") = true ]; then
+    if [ $(get_conf "first_run") = true ]; then
       log "First time run" DEBUG
-      command_init ""
-      setconf "first_run" false
+      command_setup ""
+      set_conf "first_run" false
     fi
     exit 0
     ;;
-  -i|--install)
+  i|install)
     shift
     update
     command_install $@
     ;;
-  -s|--setup)
+  s|setup)
+    shift
     update
-    command_init $2
+    command_setup $2
     ;;
   help)
     cli_help
     ;;
   -*|--*)
-    echo "Unknown option $1. Use ced help to show a list of options"
+    log "Unknown option $1. Use ced help to show a list of options" WARN
     ;;
   *)
     cli_help

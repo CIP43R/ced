@@ -26,13 +26,18 @@ jail() {
   log "Enabling fail2ban jail $1" VERBOSE
   replace "[$1]" "[$1]\nenabled=true" /etc/fail2ban/jail.local
 }
+nginx_link() {
+  # Create symlink (good practise)
+  log "Creating symlink for nginx config" VERBOSE
+  sudo ln -sf /etc/nginx/sites-available/* /etc/nginx/sites-enabled/
+}
 nginx_ok() {
-  out=$(nginx -t 2>&1)
+  out=$(sudo nginx -t 2>&1)
   if $out; then
-    echo true
+    log "nginx config is OK." INFO
   else
-    $out > $cmdlogloc
-    echo false
+    log "There is an issue with the nginx config. Please check the logs at $cmdlogloc" ERROR
+    exit 1
   fi
 }
 silent_tee() {
