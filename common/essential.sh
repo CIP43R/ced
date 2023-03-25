@@ -7,30 +7,31 @@ log() {
   case $2 in
     DEBUG)
       if [[ $(get_conf "log_level") -lt 1 ]]; then
-        printf "${BLUE}[DEBUG] $1\\n" | tee -a $logloc
+        printf "${BLUE}[DEBUG] $1\\n" | tee -a $outputlog
       fi
       ;;
     VERBOSE)
       if [[ $(get_conf "log_level") -lt 2 ]]; then
-        printf "${BLUE}[VERBOSE] $1\\n" | tee -a $logloc
+        printf "${BLUE}[VERBOSE] $1\\n" | tee -a $outputlog
       fi
       ;;
     INFO)
       if [[ $(get_conf "log_level") -lt 3 ]]; then
-        printf "${BLUE}[INFO] $1\\n" | tee -a $logloc
+        printf "${BLUE}[INFO] $1\\n" | tee -a $outputlog
       fi
       ;;
     WARN)
       if [[ $(get_conf "log_level") -lt 3 ]]; then
-      printf "${YELLOW}[WARN] $1\\n" | tee -a $logloc
+      printf "${YELLOW}[WARN] $1\\n" | tee -a $outputlog
       fi
       ;;
     ERROR)
-      printf "${RED}[ERROR] $1\\n" | tee -a $logloc
-      exit 32
+      printf "${RED}[ERROR] $1\\n" | tee -a $errorlog
+      exit 1
       ;;
     *)
-      printf "Wrong call! $2"
+      printf "Wrong call! $2" | tee -a $errorlog
+      exit 1
       ;;
   esac
 }

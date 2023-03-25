@@ -17,11 +17,10 @@ file_contains() {
 }
 
 # $1: String to replace
-# $2: String that replaces the found string
+# $2: String that replace the found string
 # $3: File where we should replace the occurance
-# Warning: Replaces ALL occurances!
-replace() {
-  sudo sed -i -e "s/$1/$2/g" "$3" # TODO: 
+replace_all() {
+  sudo sed -i -e "s/$1/$2/g" "$3"
   #tr $1 $2 < $3 # TODO: needs testing
 }
 
@@ -32,7 +31,7 @@ set_prop() {
   sed -i "/${1}/c\\${1}=${2}" $3
 }
 
-any_file_exist() {
+any_file_exists() {
   files=$(shopt -s nullglob dotglob; echo $1)
   if [ "${#files}" ]; then
     echo true

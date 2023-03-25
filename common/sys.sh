@@ -12,19 +12,17 @@ update() {
   
   log "Installing updates...this may take a while" INFO
   { 
-    touch $cwd/logs/install.log
-    touch $cwd/logs/full.log
-    sudo apt update && apt upgrade -y
-  } &> $aptlogloc
+    sudo apt update -y && sudo apt upgrade -y
+  } 2> $errorlog 1> $outputlog
   log "Updated system packages" INFO
 }
 jail() {
-  if [[ $(command_exists "fail2ban") = false ]]; then
-    log "fail2ban installation not found. Installing now..." LOG
+  if [[ $(command_exists "fail2ban-client") = false ]]; then
+    log "fail2ban installation not found. Installing now..." INFO
     install_fail2ban
   fi
   log "Enabling fail2ban jail $1" VERBOSE
-  replace "[$1]" "[$1]\nenabled=true" /etc/fail2ban/jail.local
+  replace_all "[$1]" "[$1]\nenabled=true" /etc/fail2ban/jail.local
 }
 nginx_link() {
   # Create symlink (good practise)
@@ -32,14 +30,20 @@ nginx_link() {
   sudo ln -sf /etc/nginx/sites-available/* /etc/nginx/sites-enabled/
 }
 nginx_ok() {
+  if [[ $(command_exists "nginx") = false ]]; then
+    log "nginx installation not found. Installing now..." INFO
+    install_nginx
+  fi
   out=$(sudo nginx -t 2>&1)
   if $out; then
     log "nginx config is OK." INFO
   else
-    log "There is an issue with the nginx config. Please check the logs at $cmdlogloc" ERROR
+    log "There is an issue with the nginx config. Please check the logs at $errorlog" ERROR
     exit 1
   fi
 }
-silent_tee() {
+append_to_file() {
+  # TODO: doesn't work
+  log "Appending $1 to file $2" DEBUG
   echo -e "\n$1" | sudo tee -a $2 &> /dev/null 
 }

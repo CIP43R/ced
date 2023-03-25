@@ -24,6 +24,7 @@ command_install() {
       do
         install_$v
       done
+      log "Successfully installed packages listed in custom config." INFO
       exit 0
       ;;
     "essential")
