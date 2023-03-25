@@ -7,6 +7,7 @@ curl https://raw.githubusercontent.com/CIP43R/setup-linux-server/master/install.
 wget -qO- https://raw.githubusercontent.com/CIP43R/setup-linux-server/master/install.sh && bash install.sh
 ```
 
+After installation, either open a new terminal or execute `source ~/.bashrc` to use it immediately.
 Then you can use `ced` everywhere on your machine to use this tool (it will add itself to the PATH env variable).
 The package itself will be copied into `/opt/ced`. Logs and backups will be placed in there, too.
 

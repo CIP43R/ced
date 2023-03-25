@@ -7,8 +7,8 @@ install_ssh() {
   sudo systemctl enable ssh 2> $errorlog 1> $outputlog
 
   # Configure SSH
-  mkdir -p /home/$adminusr/.ssh
-  touch /home/$adminusr/.ssh/authorized_keys
+  sudo mkdir -p /home/$adminusr/.ssh
+  sudo touch /home/$adminusr/.ssh/authorized_keys
   read -p "Fill in RSA pub key (leave empty to skip): " adminkey
   
   # TODO: change target dir to whatever will be in the sshd config at this time, and only default to home

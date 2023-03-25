@@ -34,8 +34,8 @@ nginx_ok() {
     log "nginx installation not found. Installing now..." INFO
     install_nginx
   fi
-  out=$(sudo nginx -t 2>&1)
-  if $out; then
+
+  if out=$(sudo nginx -t 2>&1); then
     log "nginx config is OK." INFO
   else
     log "There is an issue with the nginx config. Please check the logs at $errorlog" ERROR
