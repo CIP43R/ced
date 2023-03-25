@@ -1,32 +1,44 @@
 #!/bin/bash
+###
+# Colors
+###
+RED="\\e[1;31m"
+GREEN="\\e[1;32m"
+CYAN="\\e[1;36m"
+YELLOW="\\e[1;33m"
+BLUE="\\e[1;34m"
+BLACK="\\e[1;35m"
+ENDCOLOR="\e[0m"
+
 
 log() {
+  
   config_log_level=$(get_conf "log_level")
   log_level=${config_log_level:-2}
   
   case $2 in
     DEBUG)
       if [[ $(get_conf "log_level") -lt 1 ]]; then
-        printf "${BLUE}[DEBUG] $1\\n" | tee -a $outputlog
+        printf "${BLACK}[DEBUG]${ENDCOLOR} $1\\n" | tee -a $outputlog
       fi
       ;;
     VERBOSE)
       if [[ $(get_conf "log_level") -lt 2 ]]; then
-        printf "${BLUE}[VERBOSE] $1\\n" | tee -a $outputlog
+        printf "${BLUE}[VERBOSE]${ENDCOLOR} $1\\n" | tee -a $outputlog
       fi
       ;;
     INFO)
       if [[ $(get_conf "log_level") -lt 3 ]]; then
-        printf "${BLUE}[INFO] $1\\n" | tee -a $outputlog
+        printf "${CYAN}[INFO]${ENDCOLOR} $1\\n" | tee -a $outputlog
       fi
       ;;
     WARN)
-      if [[ $(get_conf "log_level") -lt 3 ]]; then
-      printf "${YELLOW}[WARN] $1\\n" | tee -a $outputlog
+      if [[ $(get_conf "log_level") -lt 4 ]]; then
+      printf "${YELLOW}[WARN] $1${ENDCOLOR}\\n" | tee -a $outputlog
       fi
       ;;
     ERROR)
-      printf "${RED}[ERROR] $1\\n" | tee -a $errorlog
+      printf "${RED}[ERROR] $1${ENDCOLOR}\\n" | tee -a $errorlog
       exit 1
       ;;
     *)

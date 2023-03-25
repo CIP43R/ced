@@ -20,14 +20,6 @@ export config_path=$cwd/config.conf
 export outputlog=$cwd/logs/output.log 
 export errorlog=$cwd/logs/errors.log
 export fulllog=$cwd/logs/full.log
-###
-# Colors
-###
-RED="\\e[31m"
-GREEN="\\e[32m"
-CYAN="\\e[0;36m"
-YELLOW="\\e[0;33m"
-ENDCOLOR="\\e[0m"
 
 # Load common functions and commands
 load_func() {
